@@ -1,0 +1,58 @@
+Space
+In each dimension:
+1 24 x 24 x 8 bunker
+1 Teleporter Setup
+1 3 x 3 x 3 Airlock w/ commands
+
+Resources (Overworld):
+52 wood planks
+64 blocks of coal
+8 paper
+64 steaks
+4 Ender Pearls
+1 chest
+1 crafting table
+1 Lever
+16 torches
+
+Resources (Nether):
+2 Blaze Powder
+2 Ender Pearls
+64 steak
+1 chest
+1 bed
+1 sign
+Assorted Lava
+
+Resources (End):
+8 Ender Pearls
+8 item frames
+1 Cake
+2 ender chests
+1 sign
+Assorted end stone and rods
+Kenneth and the End Gang
+
+ComputerCraft Gear:
+2 OpenComputers Manuals
+2 OpenOS floppy
+1 Internet floppy
+1 Assembler
+1 Power Converter
+1 Charger
+1 Capacitor
+2 Disk drives
+2 floppy disk
+4 keyboards
+4 Tier 1 screens
+4 Tier 1 computer cases
+4 Tier 1 processor
+8 Tier 1 RAM Modules
+4 Tier 1 GPUs
+2 Tier 1 HDDs
+4 EEPROM (Lua BIOS)
+2 inventory upgrades
+
+Mekanism:
+1 Heat Generator
+32 universal cable
