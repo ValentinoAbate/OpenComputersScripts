@@ -14,6 +14,11 @@ local facing = north
 local pathInd = 1
 local path = {origin}
 local logFile = io.open("logFile.txt", "w")
+local newLine = "\n";
+
+function log(message)
+    logFile:write(message .. newLine)
+end
 
 function comparePositions(pos1, pos2)
     return pos1[1] == pos2[1] and pos1[2] == pos2[2] and pos1[3] == pos2[3]
@@ -30,15 +35,15 @@ end
 function logCurrentPositionInPath()
     pathInd = pathInd + 1
     path[pathInd] = {pos[1], pos[2], pos[3]}
-    logFile:write("Position is now " .. serialization.serialize(pos) .. ". " .. (pathInd - 1) .. " moves away from home.\n")
+    log((pathInd - 1) .. " moves away from home.")
 end
 
 function moveGeneric(moveFunction, direction, logPath)
-    logFile:write("Attempting move in " .. serialization.serialize(direction) .. " direction...\n")
+    log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
     local success = moveFunction()
     if(success == nil) then return false end
     pos = addPositions(pos, direction)
-    logFile:write("Move success!\n")
+    log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
     if(logPath) then
         logCurrentPositionInPath()
     end
@@ -89,12 +94,12 @@ function moveAndClear(moveFunction, attackFunction, returning)
         moved = moveFunction(not returning)
 
         if moved == false then
-            logFile:write("Movement Failure. Attempting swing...\n")
+            log("Movement Failure. Attempting swing...")
             local swingSuccess, message = attackFunction()
             if swingSuccess then
-                logFile:write("Swing success. Hit on: " .. message .. "\n")
+                log("Swing success. Hit on: " .. message)
             else
-                logFile:write("Swing failure.\n")
+                log("Swing failure.")
             end
             counter = counter + 1
         end
@@ -106,7 +111,7 @@ function moveAndClear(moveFunction, attackFunction, returning)
 end
 
 function returnHome()
-    logFile:write("Returning Home.\n")
+    log("Returning Home.")
     pathInd = pathInd - 1
     while pathInd > 0 do
         local goal = path[pathInd]
@@ -124,15 +129,54 @@ function returnHome()
         end
         pathInd = pathInd - 1
     end
+    resetPathData()
+end
+
+-- Resets the path data. Only call this function if you are at the origin
+function resetPathData()
+    path = {origin}
+    pathInd = 1
+end
+
+-- Walk a random path of length (int) steps, and then return to start
+function randomPath(length)
+    log("Starting random path of length " .. length)
+    for i = 1, length do
+        local r = math.random(100)
+        local r2 = math.random(100)
+        if r <= 25 then
+            if (not moveAndClear(moveUp, robot.swingUp, false)) then 
+                return false
+            end
+        elseif r <= 35 then
+            if (not moveAndClear(moveDown, robot.swingDown, false)) then 
+                return false
+            end
+        elseif r <= 60 then
+            if (not moveAndClear(move, robot.swing, false)) then 
+                return false
+            end
+        else
+            if (not moveAndClear(move, robot.swing, false)) then 
+                return false
+            end
+        end
+
+        if r2 <= 25 then
+            turnRight()
+        elseif r2 <= 50 then
+            turnLeft()
+        end
+    end
+    return true
 end
 
 function main()
-    logFile:write("Starting routine.\n")
-    for i = 1, 12 do
-        if (not moveAndClear(moveUp, robot.swingUp, false)) then 
-            break
-        end
-    end
+    log("Starting routine.")
+    if randomPath(5) then randomPath(10) end
+    returnHome()
+    faceDirection(north)
+    if randomPath(5) then randomPath(10) end
     returnHome()
     faceDirection(north)
     logFile:close()
