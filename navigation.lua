@@ -18,29 +18,47 @@ local logFile = io.open("logFile.txt", "w")
 local newLine = "\n";
 local holeError = "Hole Safety Protocol Violation"
 
-function navigation.log(message)
+local function log(message)
     logFile:write(message .. newLine)
 end
 
-function navigation.comparePositions(pos1, pos2)
+local function comparePositions(pos1, pos2)
     return pos1[1] == pos2[1] and pos1[2] == pos2[2] and pos1[3] == pos2[3]
 end
 
-function navigation.addPositions(pos1, pos2)
+local function addPositions(pos1, pos2)
     return {pos1[1] + pos2[1], pos1[2] + pos2[2], pos1[3] + pos2[3]}
 end
 
-function navigation.compareDirection(dir1, dir2)
+local function compareDirection(dir1, dir2)
     return dir1[1] == dir2[1] and dir1[2] == dir2[2] and dir1[3] == dir2[3]
 end
 
-function navigation.logCurrentPositionInPath()
+local function directionBetween(from, to)
+    return {to[1] - from[1], to[2] - from[2], to[3] - from[3]}
+end
+
+local function logCurrentPositionInPath()
     pathInd = pathInd + 1
     path[pathInd] = {pos[1], pos[2], pos[3]}
     log((pathInd - 1) .. " moves away from home.")
 end
 
-function checkForSolids(exceptDirection)
+local function turnRight()
+    robot.turnRight()
+    facingInd = facingInd + 1
+    if facingInd == 5 then facingInd = 1 end
+    facing = directions[facingInd]
+end
+
+local function turnLeft()
+    robot.turnLeft()
+    facingInd = facingInd - 1
+    if facingInd <= 0 then facingInd = 4 end
+    facing = directions[facingInd]
+end
+
+local function checkForSolids(exceptDirection)
     if(not (down == exceptDirection)) then
         blocked, blockType = robot.detectDown()
         if(blocked and (blockType == "solid")) then
@@ -54,21 +72,22 @@ function checkForSolids(exceptDirection)
         end
     end
     local ret = false
-    for 1,4 do
+    for i = 1,4 do
         if(not (facing == exceptDirection)) then
             blocked, blockType = robot.detect()
             if(blocked and (blockType == "solid")) then
                 ret = true
             end
         end
+        turnRight();
     end
     return ret
 end
 
-function navigation.moveGeneric(moveFunction, direction, logPath)
+local function moveGeneric(moveFunction, direction, logPath)
     log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
-    local success = moveFunction()
-    if(success == nil) then return false end
+    local success, error = moveFunction()
+    if(success == nil) then return false, error end
     pos = addPositions(pos, direction)
     log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
     if(logPath) then
@@ -77,8 +96,24 @@ function navigation.moveGeneric(moveFunction, direction, logPath)
     return true
 end
 
+-- Resets the path data. Only call this function if you are at the origin
+local function resetPathData()
+    path = {origin}
+    pathInd = 1
+end
+
+-- EXPORTED LIBRARY FUNCTIONS
+
+function navigation.log(message)
+    log(message)
+end
+
+function navigation.endLog(message)
+    logFile:close()
+end
+
 function navigation.move(logPath)
-    if not checkForSolids(facing) then
+    if logPath and (not checkForSolids(facing)) then
         log(holeError)
         return false, holeError
     end
@@ -86,7 +121,7 @@ function navigation.move(logPath)
 end
 
 function navigation.moveUp(logPath)
-    if not checkForSolids(up) then
+    if logPath and (not checkForSolids(up)) then
         log(holeError)
         return false, holeError
     end
@@ -94,7 +129,7 @@ function navigation.moveUp(logPath)
 end
 
 function navigation.moveDown(logPath)
-    if not checkForSolids(down) then
+    if logPath and (not checkForSolids(down)) then
         log(holeError)
         return false, holeError
     end
@@ -102,21 +137,11 @@ function navigation.moveDown(logPath)
 end
 
 function navigation.turnRight()
-    robot.turnRight()
-    facingInd = facingInd + 1
-    if facingInd == 5 then facingInd = 1 end
-    facing = directions[facingInd]
+    turnRight()
 end
 
 function navigation.turnLeft()
-    robot.turnLeft()
-    facingInd = facingInd - 1
-    if facingInd <= 0 then facingInd = 4 end
-    facing = directions[facingInd]
-end
-
-function navigation.directionBetween(from, to)
-    return {to[1] - from[1], to[2] - from[2], to[3] - from[3]}
+    turnLeft()
 end
 
 function navigation.faceDirection(dir)
@@ -167,22 +192,16 @@ function navigation.returnHome()
         end
         local direction = directionBetween(pos, goal)
         if compareDirection(direction, up) then
-            moveAndClear(moveUp, robot.swingUp, true)
+            navigation.moveAndClear(navigation.moveUp, robot.swingUp, true)
         elseif compareDirection(direction, down) then
-            moveAndClear(moveDown, robot.swingDown, true)
+            navigation.moveAndClear(navigation.moveDown, robot.swingDown, true)
         else
-            faceDirection(direction)
-            moveAndClear(move, robot.swing, true)
+            navigation.faceDirection(direction)
+            navigation.moveAndClear(navigation.move, robot.swing, true)
         end
         pathInd = pathInd - 1
     end
     resetPathData()
-end
-
--- Resets the path data. Only call this function if you are at the origin
-function navigation.resetPathData()
-    path = {origin}
-    pathInd = 1
 end
 
 return navigation
