@@ -1,16 +1,28 @@
 local doorbell = {}
 
 computer = require("computer")
+music = require("music")
 
 local tone1 = 440
 local tone2 = 349
 local delay = 1
 local scout = "scout"
+local eve = "EVE"
 -- e3-2 g5-1 e5-1 f5-4 e3-2 g5-1 e5-1 f4-4
 
 local scoutSounds = {{165, 0.5},  {784, 0.25}, {659, 0.25}, {698, 1}, {165, 0.5},  {784, 0.25}, {659, 0.25}, {349, 1}}
+local eveSounds = 
+{
+    {0, music.beats."1"},
+    {music.notes."E4", music.beats."1"}, {music.notes."D4", music.beats."1"}, {music.notes."C4", music.beats."0.5"}, {music.notes."G4", music.beats."0.5"},
+    {music.notes."E4", music.beats."1"}, {music.notes."D4", music.beats."1"}, {music.notes."C4", music.beats."0.5"}, {music.notes."D4", music.beats."2.5"},
+    {music.notes."G3", music.beats."1"}, {music.notes."C4", music.beats."1"}, {music.notes."B3", music.beats."0.5"}, {music.notes."A3", music.beats."2"},
+    {music.notes."G3", music.beats."2"}, {music.notes."B3", music.beats."2"}, {music.notes."A3", music.beats."2"}
+}
+
 local robotSounds = {}
 robotSounds[scout] = scoutSounds
+robotsounds[eve] = eveSounds
 
 
 function doorbell.ringHome()
@@ -33,7 +45,11 @@ function doorbell.ring(type)
 
     while running do
         for k,v in pairs(robotSounds[type]) do
+            if (v[1] == 0) do
+                os.sleep(v[2])
+            else
                 computer.beep(v[1], v[2])
+            end
         end
         os.sleep(delay)
     end
