@@ -1,5 +1,5 @@
-robot = require("robot")
-serialization = require("serialization")
+local robot = require("robot")
+local serialization = require("serialization")
 local origin = {0,0,0}
 local pos = {0,0,0}
 local north = {0,0,-1}
@@ -15,6 +15,7 @@ local pathInd = 1
 local path = {origin}
 local logFile = io.open("logFile.txt", "w")
 local newLine = "\n";
+local holeError = "Hole Safety Protocol Violation"
 
 function log(message)
     logFile:write(message .. newLine)
@@ -38,6 +39,31 @@ function logCurrentPositionInPath()
     log((pathInd - 1) .. " moves away from home.")
 end
 
+function checkForSolids(exceptDirection)
+    if(not (down == exceptDirection)) then
+        blocked, blockType = robot.detectDown()
+        if(blocked and (blockType == "solid")) then
+            return true
+        end
+    end
+    if(not (up == exceptDirection)) then
+        blocked, blockType = robot.detectUp()
+        if(blocked and (blockType == "solid")) then
+            return true
+        end
+    end
+    local ret = false
+    for 1,4 do
+        if(not (facing == exceptDirection)) then
+            blocked, blockType = robot.detect()
+            if(blocked and (blockType == "solid")) then
+                ret = true
+            end
+        end
+    end
+    return ret
+end
+
 function moveGeneric(moveFunction, direction, logPath)
     log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
     local success = moveFunction()
@@ -51,14 +77,26 @@ function moveGeneric(moveFunction, direction, logPath)
 end
 
 function move(logPath)
+    if not checkForSolids(facing) then 
+        log(holeError)
+        return false, holeError
+    end
     return moveGeneric(robot.forward, facing, logPath)
 end
 
 function moveUp(logPath)
+    if not checkForSolids(up) then 
+        log(holeError)
+        return false, holeError
+    end
     return moveGeneric(robot.up, up, logPath)
 end
 
 function moveDown(logPath)
+    if not checkForSolids(down) then 
+        log(holeError)
+        return false, holeError
+    end
     return moveGeneric(robot.down, down, logPath)
 end
 
@@ -88,13 +126,18 @@ end
 
 function moveAndClear(moveFunction, attackFunction, returning)
     local moved = false
+    local error = nil
     local counter = 0
 
     while moved == false do
-        moved = moveFunction(not returning)
+        moved, error = moveFunction(not returning)
 
         if moved == false then
-            log("Movement Failure. Attempting swing...")
+            log("Movement Failure: " .. error .. ".")
+            if (error == holeError) and (not returning) then
+                return false
+            end
+            log("Attempting swing...")
             local swingSuccess, message = attackFunction()
             if swingSuccess then
                 log("Swing success. Hit on: " .. message)
@@ -137,49 +180,3 @@ function resetPathData()
     path = {origin}
     pathInd = 1
 end
-
--- Walk a random path of length (int) steps, and then return to start
-function randomPath(length)
-    log("Starting random path of length " .. length)
-    for i = 1, length do
-        local r = math.random(100)
-        local r2 = math.random(100)
-        if r <= 25 then
-            if (not moveAndClear(moveUp, robot.swingUp, false)) then 
-                return false
-            end
-        elseif r <= 35 then
-            if (not moveAndClear(moveDown, robot.swingDown, false)) then 
-                return false
-            end
-        elseif r <= 60 then
-            if (not moveAndClear(move, robot.swing, false)) then 
-                return false
-            end
-        else
-            if (not moveAndClear(move, robot.swing, false)) then 
-                return false
-            end
-        end
-
-        if r2 <= 25 then
-            turnRight()
-        elseif r2 <= 50 then
-            turnLeft()
-        end
-    end
-    return true
-end
-
-function main()
-    log("Starting routine.")
-    if randomPath(5) then randomPath(10) end
-    returnHome()
-    faceDirection(north)
-    if randomPath(5) then randomPath(10) end
-    returnHome()
-    faceDirection(north)
-    logFile:close()
-end
-
-main()
