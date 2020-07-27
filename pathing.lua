@@ -4,12 +4,16 @@ local pathing = {}
 
 -- Local functions (mostly wrappers of the navigation library)
 
+local function endLog()
+    nav.endLog()
+end
+
 local function log(message)
     nav.log(message)
 end
 
 local function move()
-    return nav.moveAndClear(nav.moveUp, robot.swingUp, false)
+    return nav.moveAndClear(nav.move, robot.swing, false)
 end
 
 local function moveUp()
@@ -17,7 +21,7 @@ local function moveUp()
 end
 
 local function moveDown()
-    return nav.moveAndClear(nav.moveUp, robot.swingUp, false)
+    return nav.moveAndClear(nav.moveDown, robot.swingDown, false)
 end
 
 local function turnRight()
@@ -63,8 +67,8 @@ end
 -- Move forward length (int) steps. 
 -- returns false if path abort triggered, else true
 local function forwardPath(length)
-    log("Moving " .. length .. "blocks forward.")
-    for 1, length do
+    log("Moving " .. length .. " blocks forward.")
+    for i = 1, length do
         if (not move()) then 
             return false
         end
@@ -75,8 +79,8 @@ end
 -- Move up length (int) steps. 
 -- returns false if path abort triggered, else true
 local function upPath(length)
-    log("Moving " .. length .. "blocks up.")
-    for 1, length do
+    log("Moving " .. length .. " blocks up.")
+    for i = 1, length do
         if (not moveUp()) then 
             return false
         end
@@ -87,8 +91,8 @@ end
 -- Move up length (int) steps. 
 -- returns false if path abort triggered, else true
 local function downPath(length)
-    log("Moving " .. length .. "blocks down.")
-    for 1, length do
+    log("Moving " .. length .. " blocks down.")
+    for i = 1, length do
         if (not moveDown()) then 
             return false
         end
@@ -149,8 +153,8 @@ end
 -- PATH EXECUTION
 
 function pathing.path(...)
-    for i,v in ipairs(arg) do
-        if not arg() then 
+    for i,v in ipairs({...}) do
+        if not v() then 
             log("Aborting path.")
             return false 
         end
@@ -160,8 +164,22 @@ function pathing.path(...)
 end
 
 function pathing.pathAndReturn(...)
-    pathing.path(arg)
+    log("Starting path.")
+    local failure = false
+    for i,v in ipairs({...}) do
+        if not v() then 
+            failure = true
+            log("Aborting path.")
+            break;
+        end
+    end
+    if not failure then log("Path complete.") end
     nav.returnHome()
+end
+
+function pathing.endPathing()
+    log("Log end. Closed by Pathing.")
+    endLog()
 end
 
 -- Return library
