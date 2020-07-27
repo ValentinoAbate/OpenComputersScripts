@@ -1,3 +1,5 @@
+local doorbell = {}
+
 computer = require("computer")
 
 local tone1 = 440
@@ -11,7 +13,7 @@ local robotSounds = {}
 robotSounds[scout] = scoutSounds
 
 
-function ringHome()
+function doorbell.ringHome()
     while true do
         computer.beep(tone1, delay)
         os.sleep(delay)
@@ -22,7 +24,7 @@ end
 
 
 --takes string as robot type
-function ring(type)
+function doorbell.ring(type)
     local running = true
     if (robotSounds[type] == nil) then
         print("invalid robot type")
@@ -37,8 +39,10 @@ function ring(type)
     end
 end
 
-function lookup()
+function doorbell.lookup()
     for k,v in pairs(robotSounds) do
         print(k)
     end
 end
+
+return doorbell

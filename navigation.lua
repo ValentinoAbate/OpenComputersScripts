@@ -1,3 +1,5 @@
+navigation = {}
+
 robot = require("robot")
 serialization = require("serialization")
 local origin = {0,0,0}
@@ -16,29 +18,29 @@ local path = {origin}
 local logFile = io.open("logFile.txt", "w")
 local newLine = "\n";
 
-function log(message)
+function navigation.log(message)
     logFile:write(message .. newLine)
 end
 
-function comparePositions(pos1, pos2)
+function navigation.comparePositions(pos1, pos2)
     return pos1[1] == pos2[1] and pos1[2] == pos2[2] and pos1[3] == pos2[3]
 end
 
-function addPositions(pos1, pos2)
+function navigation.addPositions(pos1, pos2)
     return {pos1[1] + pos2[1], pos1[2] + pos2[2], pos1[3] + pos2[3]}
 end
 
-function compareDirection(dir1, dir2)
+function navigation.compareDirection(dir1, dir2)
     return dir1[1] == dir2[1] and dir1[2] == dir2[2] and dir1[3] == dir2[3] 
 end
 
-function logCurrentPositionInPath()
+function navigation.logCurrentPositionInPath()
     pathInd = pathInd + 1
     path[pathInd] = {pos[1], pos[2], pos[3]}
     log((pathInd - 1) .. " moves away from home.")
 end
 
-function moveGeneric(moveFunction, direction, logPath)
+function navigation.moveGeneric(moveFunction, direction, logPath)
     log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
     local success = moveFunction()
     if(success == nil) then return false end
@@ -50,43 +52,43 @@ function moveGeneric(moveFunction, direction, logPath)
     return true
 end
 
-function move(logPath)
+function navigation.move(logPath)
     return moveGeneric(robot.forward, facing, logPath)
 end
 
-function moveUp(logPath)
+function navigation.moveUp(logPath)
     return moveGeneric(robot.up, up, logPath)
 end
 
-function moveDown(logPath)
+function navigation.moveDown(logPath)
     return moveGeneric(robot.down, down, logPath)
 end
 
-function turnRight()
+function navigation.turnRight()
     robot.turnRight()
     facingInd = facingInd + 1
     if facingInd == 5 then facingInd = 1 end
     facing = directions[facingInd]
 end
 
-function turnLeft()
+function navigation.turnLeft()
     robot.turnLeft()
     facingInd = facingInd - 1
     if facingInd <= 0 then facingInd = 4 end
     facing = directions[facingInd]
 end
 
-function directionBetween(from, to)
+function navigation.directionBetween(from, to)
     return {to[1] - from[1], to[2] - from[2], to[3] - from[3]}
 end
 
-function faceDirection(dir)
+function navigation.faceDirection(dir)
     while not compareDirection(facing, dir) do
         turnRight()
     end
 end
 
-function moveAndClear(moveFunction, attackFunction, returning)
+function navigation.moveAndClear(moveFunction, attackFunction, returning)
     local moved = false
     local counter = 0
 
@@ -98,6 +100,9 @@ function moveAndClear(moveFunction, attackFunction, returning)
             local swingSuccess, message = attackFunction()
             if swingSuccess then
                 log("Swing success. Hit on: " .. message)
+                robot.suck()
+                robot.suckUp()
+                robot.suckDown()
             else
                 log("Swing failure.")
             end
@@ -110,7 +115,7 @@ function moveAndClear(moveFunction, attackFunction, returning)
     return true
 end
 
-function returnHome()
+function navigation.returnHome()
     log("Returning Home.")
     pathInd = pathInd - 1
     while pathInd > 0 do
@@ -133,13 +138,13 @@ function returnHome()
 end
 
 -- Resets the path data. Only call this function if you are at the origin
-function resetPathData()
+function navigation.resetPathData()
     path = {origin}
     pathInd = 1
 end
 
 -- Walk a random path of length (int) steps, and then return to start
-function randomPath(length)
+function navigation.randomPath(length)
     log("Starting random path of length " .. length)
     for i = 1, length do
         local r = math.random(100)
@@ -171,7 +176,7 @@ function randomPath(length)
     return true
 end
 
-function main()
+function navigation.main()
     log("Starting routine.")
     if randomPath(5) then randomPath(10) end
     returnHome()
@@ -182,4 +187,4 @@ function main()
     logFile:close()
 end
 
-main()
+return navigation
