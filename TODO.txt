@@ -1,5 +1,15 @@
-Doorbell Library - Done
-Music Library - In Progress
-Mapping Library 
+GOALS
+
+General:
+Find how big the loaded area is
+
+Asa:
+Midi interpreter
+Mission / path planning
+New airlock Airlock testing
+(Potentially) Modify navigation library to add additional hole abort functions
+
+Tino:
+Vec3 library
+Mapping library
 PixelToast's Theme
-E.V.E's theme - done
