@@ -5,6 +5,7 @@ Find how big the loaded area is
 
 Asa:
 Midi interpreter
+Create Zune library that has more advanced play features for songs
 Mission / path planning
 New airlock Airlock testing
 (Potentially) Modify navigation library to add additional hole abort functions

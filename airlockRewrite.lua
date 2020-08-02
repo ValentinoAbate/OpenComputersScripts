@@ -1,5 +1,10 @@
-dimentions = {}
-
+local dimensions = {}
+local debug = require("component").debug
+local computer = require("computer")
+local sides = require("sides")
+local redstone = require("component").redstone
+local component = require("component")
+local shell = require("shell")
 
 
 --EDIT THESE VALUES
@@ -7,7 +12,7 @@ dimentions = {}
 --set these values to the coordinate values of the airlock
 --format: xyz of top left corner followed by xyz of bottom right, all values should be separated by one space
 --example: x1 y1 z1 x2 y2 z2
-dimensions.OVERWORLD = {["front"] = "", ["back"] = ""}
+dimensions.OVERWORLD = {["front"] = "7 73 499 9 71 499", ["back"] = "7 73 495 9 71 495"}
 dimensions.NETHER = {["front"] = "", ["back"] = ""}
 dimensions.END = {["front"] = "", ["back"] = ""}
 
@@ -17,18 +22,19 @@ airlock = dimensions.OVERWORLD
 --set to the address of the energy cube
 local proxy = component.proxy("")
 
---set these values to determine the min and max power of operation
+--set these values to determine the power of operation
 power = 10000
-min_power = 1000
+
+--set this to the sound that should play on door open/close
+sound = "mekanism:etc.hydraulic"
+
+--set this to the number of seconds to wait between operations
+delay = 3
+
+finishTime = 155
 
 
 --MAIN
-local debug = require("component").debug
-local computer = require("computer")
-local sides = require("sides")
-local redstone = require("component").redstone
-local component = require("component")
-
 
 --cleanup
 redstone.setOutput(sides.back, 1)
@@ -57,8 +63,16 @@ function openFront()
 end
 
 function delPower()
-    redstone.setOutput(sides.bottom, 1)
-    redstone.setOutput(sides.back, 0)
+    local currentPower = proxy.getEnergyStored()
+    local minPower = currentPower - power
+
+    while (proxy.getEnergyStored() > minPower) do
+        redstone.setOutput(sides.bottom, 1)
+        redstone.setOutput(sides.back, 0)
+    end
+
+    redstone.setOutput(sides.bottom, 0)
+    redstone.setOutput(sides.back, 1)
 end
 
 function savePower()
@@ -66,83 +80,135 @@ function savePower()
     redstone.setOutput(sides.bottom, 0)
 end
 
+function fileExists(name)
+    local f=io.open(name,"r")
+    if f~=nil then
+        io.close(f)
+        return true
+    else
+        return false
+    end
+end
+
+function progressBar()
+    middleNum = (finishTime/2) - 4
+    print("")
+    io.write("|")
+
+    for i = 1, middleNum do
+        io.write(" ")
+    end
+
+    io.write("PROGRESS")
+
+    for i = 1, middleNum do
+        io.write(" ")
+    end
+
+    print("|")
+    io.write(" ")
+    for i = 1, finishTime do
+        os.sleep(delay/finishTime)
+        io.write("=")
+    end
+end
+
 
 function main()
+    debug.runCommand("playsound mekanism:etc.beep master @a ~ ~ ~ 1 1 1")
 
-    file =io.open("lockState.txt", "w+")
-
-    if (file:read() == "insideClosed") then
-        insideClosed = true
+    if fileExists("lockState.txt") == false then
+        file = io.open("lockState.txt", "w")
+        file:write("insideClosed")
         io.close(file)
-    else if (file:read() == "insideOpen") then
+        closeFront()
+        openBack()
+    end
+
+    local file = io.open("lockState.txt", "r")
+    lockStateValue = file:read()
+    io.close(file)
+
+    if (lockStateValue == "insideClosed") then
+        insideClosed = true
+    elseif (lockStateValue == "insideOpen") then
         insideClosed = false
         io.close(file)
     else
-        closeFront()
-        openBack()
-        insideClosed = true
-        io.close(file)
+        os.exit()
     end
 
 
-    print("power needed: " .. power)
-    print("charging...")
-    while (proxy.getEnergyStored() <= power) do
-        os.sleep(3)
-        print(proxy.getEnergyStored())
+    print("power stored: " .. proxy.getEnergyStored())
+
+    if (proxy.getEnergyStored() < power) then
+        print("power needed: " .. power)
+        print("gaining power...")
+
+        while (proxy.getEnergyStored() <= power) do
+            os.sleep(3)
+            print(proxy.getEnergyStored())
+        end
     end
         
     if (proxy.getEnergyStored() >= power) then
+        print("engaging airlock motors...")
         delPower()
-        print("dumping power...")
+        print("")
+        print("power remaining: " .. proxy.getEnergyStored())
+        print("")
+        print("airlock motors engaged")
         run = true
     end
 
-    while (run == true) do
-        os.sleep(5)
-        print(proxy.getEnergyStored())
+    if (run == true) then
+        if (insideClosed) then
+            debug.runCommand("playsound mekanism:etc.beep master @a ~ ~ ~ 1 1 1")
+            print("")
+            print("initiate airlock protocol?")
+            wait_for_user = io.read()
 
-        if ((run == true) and (proxy.getEnergyStored() <= min_power)) then
-            if (insideClosed) then
-                print("")
-                print("initiate airlock protocol?")
-                wait_for_user = io.read()
-    
-                closeBack()
-                debug.runCommand("playsound entity.elder_guardian.ambient master @a ~ ~ ~ 1 1 1")
-                os.sleep(5)
-                openFront()
-                debug.runCommand("playsound entity.elder_guardian.ambient master @a ~ ~ ~ 1 1 1")
-    
-                redstone.setOutput(sides.bottom, 0)
-                redstone.setOutput(sides.back, 1)
+            closeBack()
+            debug.runCommand("playsound " .. sound .. " master @a ~ ~ ~ 1 1 1")
+            os.sleep(delay)
+            openFront()
+            debug.runCommand("playsound " .. sound .. " master @a ~ ~ ~ 1 1 1")
 
-                file =io.open("lockState.txt", "w+")
-                file:write("insideOpen")
-                io.close(file)
-                
-                run = false
-            else
-                print("")
-                print("initiate airlock protocol?")
-                io.read()
-                closeFront()
-                debug.runCommand("playsound entity.elder_guardian.ambient master @a ~ ~ ~ 1 1 1")
-                os.sleep(5)
-                openBack()
-                debug.runCommand("playsound entity.elder_guardian.ambient master @a ~ ~ ~ 1 1 1")
+            redstone.setOutput(sides.bottom, 0)
+            redstone.setOutput(sides.back, 1)
 
-                redstone.setOutput(sides.bottom, 0)
-                redstone.setOutput(sides.back, 1)
+            file =io.open("lockState.txt", "w")
+            file:write("insideOpen")
+            io.close(file)
+            
+            run = false
+        else
+            debug.runCommand("playsound mekanism:etc.beep master @a ~ ~ ~ 1 1 1")
+            print("")
+            print("initiate airlock protocol?")
+            io.read()
+            closeFront()
+            debug.runCommand("playsound " .. sound .. " master @a ~ ~ ~ 1 1 1")
+            os.sleep(delay)
+            openBack()
+            debug.runCommand("playsound " .. sound .. " master @a ~ ~ ~ 1 1 1")
 
-                file =io.open("lockState.txt", "w+")
-                file:write("insideOpen")
-                io.close(file)
+            redstone.setOutput(sides.bottom, 0)
+            redstone.setOutput(sides.back, 1)
 
-                run = false
-            end
+            file =io.open("lockState.txt", "w")
+            file:write("insideClosed")
+            io.close(file)
+
+            run = false
         end
     end
+
+    progressBar()
+    shell.execute("clear")
+    debug.runCommand("playsound mekanism:etc.success master @a ~ ~ ~ 1 1 1")
+    print("airlock protocol successful")
+
 end
 
 main()

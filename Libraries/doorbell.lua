@@ -2,6 +2,7 @@ local doorbell = {}
 
 computer = require("computer")
 music = require("music")
+songs = require("songs")
 
 local tone1 = 440
 local tone2 = 349
@@ -38,13 +39,13 @@ end
 --takes string as robot type
 function doorbell.ring(type)
     local running = true
-    if (robotSounds[type] == nil) then
+    if (songs[type] == nil) then
         print("invalid robot type")
         running = false
     end
 
     while running do
-        for k,v in pairs(robotSounds[type]) do
+        for k,v in pairs(songs[type]) do
             if (v[1] == 0) then
                 os.sleep(v[2])
             else
@@ -55,7 +56,7 @@ function doorbell.ring(type)
 end
 
 function doorbell.lookup()
-    for k,v in pairs(robotSounds) do
+    for k,v in pairs(songs) do
         print(k)
     end
 end
