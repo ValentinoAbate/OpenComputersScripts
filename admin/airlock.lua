@@ -17,7 +17,7 @@ dimensions.NETHER = {["front"] = "88 41 60 86 39 60", ["back"] = "88 41 64 86 39
 dimensions.END = {["front"] = "108 60 -73 108 58 -71", ["back"] = "112 60 -73 112 58 -71"}
 
 --replace with operating dimension
-airlock = dimensions.END
+airlock = dimensions.OVERWORLD
 
 --set to the address of the energy cube
 local proxy = component.proxy("")
