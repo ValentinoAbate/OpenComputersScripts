@@ -13,11 +13,11 @@ local shell = require("shell")
 --format: xyz of top left corner followed by xyz of bottom right, all values should be separated by one space
 --example: x1 y1 z1 x2 y2 z2
 dimensions.OVERWORLD = {["front"] = "7 73 499 9 71 499", ["back"] = "7 73 495 9 71 495"}
-dimensions.NETHER = {["front"] = "", ["back"] = ""}
-dimensions.END = {["front"] = "", ["back"] = ""}
+dimensions.NETHER = {["front"] = "88 41 60 86 39 60", ["back"] = "88 41 64 86 39 64"}
+dimensions.END = {["front"] = "108 60 -73 108 58 -71", ["back"] = "112 60 -73 112 58 -71"}
 
 --replace with operating dimension
-airlock = dimensions.OVERWORLD
+airlock = dimensions.END
 
 --set to the address of the energy cube
 local proxy = component.proxy("")
@@ -31,6 +31,7 @@ sound = "mekanism:etc.hydraulic"
 --set this to the number of seconds to wait between operations
 delay = 3
 
+--this is the length of the progress bar (155 is fullscreen)
 finishTime = 155
 
 
