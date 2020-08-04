@@ -196,6 +196,8 @@ function pathing.endPathing()
     endLog()
 end
 
+pathing.log = log
+
 -- Return library
 
 return pathing
