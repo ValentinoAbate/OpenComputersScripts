@@ -120,7 +120,7 @@ local function holeAbort(execptDirection)
     end
 end
 
-function setHoleAbortLevel(level)
+local function setHoleAbortLevel(level)
     local numLevel = 1
 
     if (level == "none") then
@@ -207,7 +207,7 @@ local function moveAndClear(moveFunction, attackFunction, returning)
     return true
 end
 
-function returnHome()
+local function returnHome()
     log("Returning Home.")
     pathInd = pathInd - 1
     while pathInd > 0 do
