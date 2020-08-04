@@ -17,4 +17,10 @@ for fileName in filesystem.list(path) do
     songs[songName] = serialization.unserialize(fileContents)
 end
 
+function songs.lookup()
+    for k, v in pairs(songs) do
+        print(k)
+    end
+end
+
 return songs
