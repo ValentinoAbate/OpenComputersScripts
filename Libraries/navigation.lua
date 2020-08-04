@@ -17,6 +17,7 @@ local path = {origin}
 local logFile = io.open("logFile.txt", "w")
 local newLine = "\n";
 local holeError = "Hole Safety Protocol Violation"
+local holeAbortLevel = 0
 
 local function log(message)
     logFile:write(message .. newLine)
@@ -96,6 +97,14 @@ local function moveGeneric(moveFunction, direction, logPath)
     return true
 end
 
+local function holeAbort(execptDirection)
+    if (holeAbortLevel == 0) then
+        return true
+    elseif (holeAbortLevel == 1) then
+         return checkForSolids(execptDirection)
+    end
+end
+
 -- Resets the path data. Only call this function if you are at the origin
 local function resetPathData()
     path = {origin}
@@ -113,7 +122,7 @@ function navigation.endLog(message)
 end
 
 function navigation.move(logPath)
-    if logPath and (not checkForSolids(facing)) then
+    if logPath and (not holeAbort(facing)) then
         log(holeError)
         return false, holeError
     end
@@ -121,7 +130,7 @@ function navigation.move(logPath)
 end
 
 function navigation.moveUp(logPath)
-    if logPath and (not checkForSolids(up)) then
+    if logPath and (not holeAbort(up)) then
         log(holeError)
         return false, holeError
     end
@@ -129,7 +138,7 @@ function navigation.moveUp(logPath)
 end
 
 function navigation.moveDown(logPath)
-    if logPath and (not checkForSolids(down)) then
+    if logPath and (not holeAbort(down)) then
         log(holeError)
         return false, holeError
     end
@@ -167,9 +176,6 @@ function navigation.moveAndClear(moveFunction, attackFunction, returning)
             local swingSuccess, message = attackFunction()
             if swingSuccess then
                 log("Swing success. Hit on: " .. message)
-                robot.suck()
-                robot.suckUp()
-                robot.suckDown()
             else
                 log("Swing failure.")
             end
@@ -202,6 +208,19 @@ function navigation.returnHome()
         pathInd = pathInd - 1
     end
     resetPathData()
+end
+
+function navigation.setHoleAbortLevel(level)
+    local numLevel = 1
+
+    if (level == "none") then
+        numLevel = 0
+    elseif (level == "strict") then
+        numLevel = 1
+    end
+
+    holeAbortLevel = numLevel
+    log("hole abort level set to " .. level)
 end
 
 return navigation
