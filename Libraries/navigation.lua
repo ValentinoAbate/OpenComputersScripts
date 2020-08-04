@@ -1,72 +1,85 @@
 navigation = {}
 local robot = require("robot")
 local serialization = require("serialization")
-local origin = {0,0,0}
-local pos = {0,0,0}
-local north = {0,0,-1}
-local east = {1,0,0}
-local south = {0,0,1}
-local west = {-1,0,0}
-local up = {0,1,0}
-local down = {0,-1,0}
-local directions = {north, east, south, west, up, down}
+local vec3 = require("vector3")
+local origin = vec3.zero()
+local pos = vec3.clone(origin)
+local directions = vec3.directions()
 local facingInd = 1
-local facing = north
+local facing = vec3.north()
 local pathInd = 1
-local path = {origin}
+local path = { vec3.clone(origin) }
 local logFile = io.open("logFile.txt", "w")
 local newLine = "\n";
 local holeError = "Hole Safety Protocol Violation"
-local holeAbortLevel = 0
+-- Hole abort level codes
+local holeAbortNone = 0
+local holeAbortStrict = 1
+local holeAbortLoose = 2
+local holeAbortLevel = holeAbortStrict
+
+-- LOGGING
 
 local function log(message)
     logFile:write(message .. newLine)
 end
 
-local function comparePositions(pos1, pos2)
-    return pos1[1] == pos2[1] and pos1[2] == pos2[2] and pos1[3] == pos2[3]
-end
-
-local function addPositions(pos1, pos2)
-    return {pos1[1] + pos2[1], pos1[2] + pos2[2], pos1[3] + pos2[3]}
-end
-
-local function compareDirection(dir1, dir2)
-    return dir1[1] == dir2[1] and dir1[2] == dir2[2] and dir1[3] == dir2[3]
-end
-
-local function directionBetween(from, to)
-    return {to[1] - from[1], to[2] - from[2], to[3] - from[3]}
+local function endLog(message)
+    logFile:close()
 end
 
 local function logCurrentPositionInPath()
     pathInd = pathInd + 1
-    path[pathInd] = {pos[1], pos[2], pos[3]}
+    path[pathInd] = vec3.clone(pos)
     log((pathInd - 1) .. " moves away from home.")
 end
+
+-- DIRECTION UTILITIES
+
+local function directionBetween(from, to)
+    return vec3.subtract(to, from)
+end
+
+-- TURNING
 
 local function turnRight()
     robot.turnRight()
     facingInd = facingInd + 1
     if facingInd == 5 then facingInd = 1 end
-    facing = directions[facingInd]
+    facing = directions[facingInd]()
 end
 
 local function turnLeft()
     robot.turnLeft()
     facingInd = facingInd - 1
     if facingInd <= 0 then facingInd = 4 end
-    facing = directions[facingInd]
+    facing = directions[facingInd]()
 end
 
+-- BASIC MOVE LOGIC
+
+local function moveGeneric(moveFunction, direction, logPath)
+    log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
+    local success, error = moveFunction()
+    if(success == nil) then return false, error end
+    pos = vec3.add(pos, direction)
+    log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
+    if(logPath) then
+        logCurrentPositionInPath()
+    end
+    return true
+end
+
+-- HOLE ABORT CODE
+
 local function checkForSolids(exceptDirection)
-    if(not (down == exceptDirection)) then
+    if(not (vec3.equals(vec3.down(), exceptDirection))) then
         blocked, blockType = robot.detectDown()
         if(blocked and (blockType == "solid")) then
             return true
         end
     end
-    if(not (up == exceptDirection)) then
+    if(not (vec3.equals(vec3.up(), exceptDirection))) then
         blocked, blockType = robot.detectUp()
         if(blocked and (blockType == "solid")) then
             return true
@@ -74,7 +87,7 @@ local function checkForSolids(exceptDirection)
     end
     local ret = false
     for i = 1,4 do
-        if(not (facing == exceptDirection)) then
+        if(not (vec3.equals(facing, exceptDirection))) then
             blocked, blockType = robot.detect()
             if(blocked and (blockType == "solid")) then
                 ret = true
@@ -85,31 +98,19 @@ local function checkForSolids(exceptDirection)
     return ret
 end
 
-local function moveGeneric(moveFunction, direction, logPath)
-    log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
-    local success, error = moveFunction()
-    if(success == nil) then return false, error end
-    pos = addPositions(pos, direction)
-    log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
-    if(logPath) then
-        logCurrentPositionInPath()
-    end
-    return true
-end
-
 local function holeAbort(execptDirection)
-    if (holeAbortLevel == 0) then
+    if (holeAbortLevel == holeAbortNone) then
         return true
-    elseif (holeAbortLevel == 1) then
+    elseif (holeAbortLevel == holeAbortStrict) then
          return checkForSolids(execptDirection)
-    elseif (holeAbortLevel == 2) then
+    elseif (holeAbortLevel == holeAbortLoose) then
         local passedCheck = checkForSolids(execptDirection)
 
         if (passedCheck == false) then
             local safe = false
             repeat
-                moveGeneric(robot.down, down, true)
-                if (checkForSolids(up)) then
+                moveGeneric(robot.down, vec3.down(), true)
+                if (checkForSolids(vec3.up())) then
                     safe = true
                 end
             until safe
@@ -119,23 +120,24 @@ local function holeAbort(execptDirection)
     end
 end
 
--- Resets the path data. Only call this function if you are at the origin
-local function resetPathData()
-    path = {origin}
-    pathInd = 1
+local function setHoleAbortLevel(level)
+    local numLevel = 1
+
+    if (level == "none") then
+        numLevel = holeAbortNone
+    elseif (level == "strict") then
+        numLevel = holeAbortStrict
+    elseif (level == "loose") then
+        numLevel = holeAbortLoose
+    end
+
+    holeAbortLevel = numLevel
+    log("hole abort level set to " .. level)
 end
 
--- EXPORTED LIBRARY FUNCTIONS
+-- BASIC MOVEMENT FUNCTIONS
 
-function navigation.log(message)
-    log(message)
-end
-
-function navigation.endLog(message)
-    logFile:close()
-end
-
-function navigation.move(logPath)
+local function move(logPath)
     if logPath and (not holeAbort(facing)) then
         log(holeError)
         return false, holeError
@@ -143,37 +145,40 @@ function navigation.move(logPath)
     return moveGeneric(robot.forward, facing, logPath)
 end
 
-function navigation.moveUp(logPath)
-    if logPath and (not holeAbort(up)) then
+local function moveUp(logPath)
+    if logPath and (not holeAbort(vec3.up())) then
         log(holeError)
         return false, holeError
     end
-    return moveGeneric(robot.up, up, logPath)
+    return moveGeneric(robot.up, vec3.up(), logPath)
 end
 
-function navigation.moveDown(logPath)
-    if logPath and (not holeAbort(down)) then
+local function moveDown(logPath)
+    if logPath and (not holeAbort(vec3.down())) then
         log(holeError)
         return false, holeError
     end
-    return moveGeneric(robot.down, down, logPath)
+    return moveGeneric(robot.down, vec3.down(), logPath)
 end
 
-function navigation.turnRight()
-    turnRight()
+
+
+-- Resets the path data. Only call this function if you are at the origin
+local function resetPathData()
+    path = { vec3.clone(origin) }
+    pathInd = 1
 end
 
-function navigation.turnLeft()
-    turnLeft()
-end
 
-function navigation.faceDirection(dir)
-    while not compareDirection(facing, dir) do
+local function faceDirection(dir)
+    while not vec3.equals(facing, dir) do
         turnRight()
     end
 end
 
-function navigation.moveAndClear(moveFunction, attackFunction, returning)
+-- MAIN PATHING INTERFACE
+
+local function moveAndClear(moveFunction, attackFunction, returning)
     local moved = false
     local error = nil
     local counter = 0
@@ -202,41 +207,42 @@ function navigation.moveAndClear(moveFunction, attackFunction, returning)
     return true
 end
 
-function navigation.returnHome()
+local function returnHome()
     log("Returning Home.")
     pathInd = pathInd - 1
     while pathInd > 0 do
         local goal = path[pathInd]
-        if comparePositions(pos, goal) then
+        if vec3.equals(pos, goal) then
             return
         end
         local direction = directionBetween(pos, goal)
-        if compareDirection(direction, up) then
-            navigation.moveAndClear(navigation.moveUp, robot.swingUp, true)
-        elseif compareDirection(direction, down) then
-            navigation.moveAndClear(navigation.moveDown, robot.swingDown, true)
+        if vec3.equals(direction, vec3.up()) then
+            moveAndClear(moveUp, robot.swingUp, true)
+        elseif vec3.equals(direction, vec3.down()) then
+            moveAndClear(moveDown, robot.swingDown, true)
         else
-            navigation.faceDirection(direction)
-            navigation.moveAndClear(navigation.move, robot.swing, true)
+            faceDirection(direction)
+            moveAndClear(move, robot.swing, true)
         end
         pathInd = pathInd - 1
     end
     resetPathData()
 end
 
-function navigation.setHoleAbortLevel(level)
-    local numLevel = 1
+-- EXPORTED LIBRARY FUNCTIONS
 
-    if (level == "none") then
-        numLevel = 0
-    elseif (level == "strict") then
-        numLevel = 1
-    elseif (level == "loose") then
-        numLevel = 2
-    end
-
-    holeAbortLevel = numLevel
-    log("hole abort level set to " .. level)
-end
+navigation.log = log
+navigation.endLog = endLog
+navigation.move = move
+navigation.moveUp = moveUp
+navigation.moveDown = moveDown
+navigation.turnRight = turnRight
+navigation.turnLeft = turnLeft
+navigation.faceDirection = faceDirection
+navigation.moveAndClear = moveAndClear
+navigation.returnHome = returnHome
+navigation.setHoleAbortLevel = setHoleAbortLevel
+navigation.getDirection = function() return vec3.clone(facing) end
+navigation.getPosition = function() return vec3.clone(pos) end
 
 return navigation
