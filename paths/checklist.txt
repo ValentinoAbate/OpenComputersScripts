@@ -1,0 +1,10 @@
+MISSION CHECKLIST
+
+must require pathing
+must require doorbell
+
+must begin with os.sleep(45)
+must be followed by doorbell.start()
+must run pathing.pathAndReturn()
+must be folloed by pathing.endPathing()
+must end with doorbell.ring()

@@ -32,6 +32,10 @@ local function turnLeft()
     nav.turnLeft()
 end
 
+local function setHoleAbortLevel(level)
+    nav.setHoleAbortLevel(level)
+end
+
 -- INTERNAL PATH FUNCTIONS
 
 -- Walk a random path of length (int) steps. 
@@ -100,6 +104,7 @@ local function downPath(length)
     return true
 end
 
+
 -- EXPORTED PATH FUNCTIONS
 
 -- PATHS:
@@ -146,6 +151,15 @@ end
 function pathing.turnLeft()
     return function()
         turnLeft()
+        return true
+    end
+end
+
+-- Set level of hole about to be using
+-- Can be "strict" for full hole about coverage or "none" for none
+function pathing.setHoleAbortLevel(level)
+    return function()
+        setHoleAbortLevel(level)
         return true
     end
 end
