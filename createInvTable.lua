@@ -1,3 +1,4 @@
+local serialization = require("serialization")
 local invSize = 0
 while(true) do
     print("Enter Inventory Size (positive int):")
