@@ -3,16 +3,30 @@ GOALS
 General:
 Find how big the loaded area is
 
+develop generic logging library
+
 SAVE EVE 2: ELECTRIC BOOGALOO
 
 
 Asa:
-Midi interpreter
+maybe
+    go thru old libs and change export format
+Test claw again
+Midi interpreter -- in progress
 Create Zune library that has more advanced play features for songs
 Mission / path planning
-(Potentially) Modify navigation library to add additional hole abort functions
+    cactus mission
+        add a wrapper for suck in pathing/nav idk yet
+    clay mission
+    save eve 3
+    test path
 
 Tino:
-Vec3 library
-Mapping library
-PixelToast's Theme
+Mapping library -- in progress
+    map data merging
+    map data managment/visualization
+    map data loading/unloading from floppy disk
+    additional testing
+
+Scouting library
+    expose scouting mode to pathing
