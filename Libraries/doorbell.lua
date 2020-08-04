@@ -35,6 +35,14 @@ function doorbell.ringHome()
     end
 end
 
+function doorbell.start()
+    computer.beep(music.notes["C3"], music.beats(1))
+    os.sleep(1)
+    computer.beep(music.notes["C3"], music.beats(1))
+    os.sleep(1)
+    computer.beep(music.notes["C5"], music.beats(4))
+end
+
 
 --takes string as robot type
 function doorbell.ring(type)
