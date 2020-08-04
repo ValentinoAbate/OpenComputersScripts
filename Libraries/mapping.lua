@@ -1,8 +1,8 @@
 mapping = {}
 
 local vec3 = require("vector3")
-local ser = require("serialization")
-local mapFileName = ("mapData.txt")
+local serialization = require("serialization")
+local mapFileName = "mapData.txt"
 local mapData = {}
 local unknown = "Unknown"
 
@@ -10,16 +10,16 @@ local function loadMapData()
     -- Read existing mapData if it exists
     local mapFile = io.open(mapFileName,"r")
     if not (mapFile == nil) then
-        mapData = ser.deserialize(mapFile:read("*line"))
+        mapData = serialization.unserialize(mapFile:read("*line"))
+        mapFile:close()
     end
-    mapFile:close()
 end
 
 local function saveMapData()
     -- Write current mapData to the file
     local mapFile = io.open(mapFileName,"w")
-    file:write(ser.serialize(mapData))
-    file:close()
+    mapFile:write(serialization.serialize(mapData))
+    mapFile:close()
 end
 
 local function setData(posVec3, blockData)
@@ -27,7 +27,7 @@ local function setData(posVec3, blockData)
         mapData[posVec3.x] = {}
         mapData[posVec3.x][posVec3.y] = {}
         mapData[posVec3.x][posVec3.y][posVec3.z] = blockData
-    elseif mapData[posVec3.x][posVec3.y] then
+    elseif mapData[posVec3.x][posVec3.y] == nil then
         mapData[posVec3.x][posVec3.y] = {}
         mapData[posVec3.x][posVec3.y][posVec3.z] = blockData
     else
@@ -35,7 +35,7 @@ local function setData(posVec3, blockData)
     end
 end
 
-local function getData(posVec3, blockData)
+local function getData(posVec3)
     if (mapData[posVec3.x] == nil) or (mapData[posVec3.x][posVec3.y] == nil) then
         return nil
     end
@@ -44,14 +44,14 @@ end
 
 local function logData(posVec3, blockName, blockType, cantBe)
     local data = {}
-    data.blockName = blockName
-    data.blockType = blockType
+    data.name = blockName
+    data.type = blockType
     if blockName == unknown then
-        data.cantBe = cantBe
+        data.isnt = cantBe
     else
-        data.cantBe = {}
+        data.isnt = {}
     end
-    data.timestamp = {os.day(), os.time()}
+    data.t = os.time()
     setData(posVec3, data)
 end
 

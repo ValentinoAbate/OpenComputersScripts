@@ -2,6 +2,7 @@ navigation = {}
 local robot = require("robot")
 local serialization = require("serialization")
 local vec3 = require("vector3")
+local scouting = require("scouting")
 local origin = vec3.zero()
 local pos = vec3.clone(origin)
 local directions = vec3.directions()
@@ -34,11 +35,15 @@ local function logCurrentPositionInPath()
     log((pathInd - 1) .. " moves away from home.")
 end
 
--- DIRECTION UTILITIES
+-- POSITION AND DIRECTION UTILITIES 
 
 local function directionBetween(from, to)
     return vec3.subtract(to, from)
 end
+
+local function getDirection() return vec3.clone(facing) end
+
+local function getPosition() return vec3.clone(pos) end
 
 -- TURNING
 
@@ -66,6 +71,7 @@ local function moveGeneric(moveFunction, direction, logPath)
     log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
     if(logPath) then
         logCurrentPositionInPath()
+        scouting.scout(getPosition, getDirection, turnRight)
     end
     return true
 end
@@ -242,7 +248,7 @@ navigation.faceDirection = faceDirection
 navigation.moveAndClear = moveAndClear
 navigation.returnHome = returnHome
 navigation.setHoleAbortLevel = setHoleAbortLevel
-navigation.getDirection = function() return vec3.clone(facing) end
-navigation.getPosition = function() return vec3.clone(pos) end
+navigation.getDirection = getDirection
+navigation.getPosition = getPosition
 
 return navigation

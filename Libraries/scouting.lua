@@ -1,13 +1,14 @@
 scouting = {}
 
-local navigation = require("navigation")
 local mapping = require("mapping")
 local robot = require("robot")
+local vec3 = require("vector3")
+local serialization = require("serialization")
 -- Scouting protocol names
 local scoutingProtocolNone = "None"
 local scoutingProtocolFull = "Full"
 local scoutingProtocolPowerSaving = "PowerSave"
-local scoutingProtocol = scoutingProtocolNone
+local scoutingProtocol = scoutingProtocolFull
 -- Block type names
 local blockTypeAir = "air"
 local blockTypeLiquid = "liquid"
@@ -23,16 +24,16 @@ local inventory = {}
 local function loadInventory()
     local invFile = io.open(inventoryPath,"r")
     if not (invFile == nil) then
-        inventory = ser.deserialize(invFile:read("*line"))
+        inventory = serialization.unserialize(invFile:read("*line"))
+        invFile:close()
     end
-    invFile:close()
 end
 
 local function setScoutingProtocol(protocolName)
     scoutingProtocol = protocolName
 end
 
-local function ProcessData(position, blockType, compareFunction)
+local function processData(position, blockType, compareFunction)
     if blockType == blockTypeEntity then
         return
     elseif blockType == blockTypeAir then
@@ -55,24 +56,27 @@ local function ProcessData(position, blockType, compareFunction)
     end
 end
 
-local function scout(position)
+local function scout(posFn, dirFn, turnFn)
+    local pos = posFn() 
+    -- Where we are is considered air
+    mapping.logData(pos, blockNameAir, blockTypeAir, nil)
     if scoutingProtocol == scoutingProtocolNone then
         return
     end
     -- Assume protocol is powersaving or full, scout forward, up, and down
     local blocked, blockType = robot.detect()
-    processData(position, blockType, robot.compare)
+    processData(vec3.add(pos, dirFn()), blockType, robot.compare)
     blocked, blockType = robot.detectDown()
-    processData(position, blockType, robot.compareDown)
+    processData(vec3.add(pos, vec3.down()), blockType, robot.compareDown)
     blocked, blockType = robot.detectUp()
-    processData(position, blockType, robot.compareUp)
+    processData(vec3.add(pos, vec3.up()), blockType, robot.compareUp)
     -- Scout all the way around self
     if scoutingProtocol == scoutingProtocolFull then
-        navigation.turnRight();
+        turnFn();
         for i = 1,3 do
             blocked, blockType = robot.detect()
-            processData(position, blockType, robot.compare)
-            navigation.turnRight();
+            processData(vec3.add(pos, dirFn()), blockType, robot.compare)
+            turnFn();
         end
     end
 end
