@@ -18,12 +18,14 @@ local holeAbortStrict = 1
 local holeAbortLoose = 2
 local holeAbortLevel = holeAbortStrict
 
+-- LOGGING
+
 local function log(message)
     logFile:write(message .. newLine)
 end
 
-local function directionBetween(from, to)
-    return vec3.subtract(to, from)
+local function endLog(message)
+    logFile:close()
 end
 
 local function logCurrentPositionInPath()
@@ -31,6 +33,14 @@ local function logCurrentPositionInPath()
     path[pathInd] = vec3.clone(pos)
     log((pathInd - 1) .. " moves away from home.")
 end
+
+-- DIRECTION UTILITIES
+
+local function directionBetween(from, to)
+    return vec3.subtract(to, from)
+end
+
+-- TURNING
 
 local function turnRight()
     robot.turnRight()
@@ -45,6 +55,22 @@ local function turnLeft()
     if facingInd <= 0 then facingInd = 4 end
     facing = directions[facingInd]()
 end
+
+-- BASIC MOVE LOGIC
+
+local function moveGeneric(moveFunction, direction, logPath)
+    log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
+    local success, error = moveFunction()
+    if(success == nil) then return false, error end
+    pos = vec3.add(pos, direction)
+    log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
+    if(logPath) then
+        logCurrentPositionInPath()
+    end
+    return true
+end
+
+-- HOLE ABORT CODE
 
 local function checkForSolids(exceptDirection)
     if(not (vec3.equals(vec3.down(), exceptDirection))) then
@@ -72,18 +98,6 @@ local function checkForSolids(exceptDirection)
     return ret
 end
 
-local function moveGeneric(moveFunction, direction, logPath)
-    log("Attempting move in " .. serialization.serialize(direction) .. " direction...")
-    local success, error = moveFunction()
-    if(success == nil) then return false, error end
-    pos = vec3.add(pos, direction)
-    log("Move success! Position is now " .. serialization.serialize(pos) .. ".")
-    if(logPath) then
-        logCurrentPositionInPath()
-    end
-    return true
-end
-
 local function holeAbort(execptDirection)
     if (holeAbortLevel == holeAbortNone) then
         return true
@@ -106,23 +120,24 @@ local function holeAbort(execptDirection)
     end
 end
 
--- Resets the path data. Only call this function if you are at the origin
-local function resetPathData()
-    path = {origin}
-    pathInd = 1
+function setHoleAbortLevel(level)
+    local numLevel = 1
+
+    if (level == "none") then
+        numLevel = holeAbortNone
+    elseif (level == "strict") then
+        numLevel = holeAbortStrict
+    elseif (level == "loose") then
+        numLevel = holeAbortLoose
+    end
+
+    holeAbortLevel = numLevel
+    log("hole abort level set to " .. level)
 end
 
--- EXPORTED LIBRARY FUNCTIONS
+-- BASIC MOVEMENT FUNCTIONS
 
-function navigation.log(message)
-    log(message)
-end
-
-function navigation.endLog(message)
-    logFile:close()
-end
-
-function navigation.move(logPath)
+local function move(logPath)
     if logPath and (not holeAbort(facing)) then
         log(holeError)
         return false, holeError
@@ -130,7 +145,7 @@ function navigation.move(logPath)
     return moveGeneric(robot.forward, facing, logPath)
 end
 
-function navigation.moveUp(logPath)
+local function moveUp(logPath)
     if logPath and (not holeAbort(vec3.up())) then
         log(holeError)
         return false, holeError
@@ -138,7 +153,7 @@ function navigation.moveUp(logPath)
     return moveGeneric(robot.up, vec3.up(), logPath)
 end
 
-function navigation.moveDown(logPath)
+local function moveDown(logPath)
     if logPath and (not holeAbort(vec3.down())) then
         log(holeError)
         return false, holeError
@@ -146,21 +161,24 @@ function navigation.moveDown(logPath)
     return moveGeneric(robot.down, vec3.down(), logPath)
 end
 
-function navigation.turnRight()
-    turnRight()
+
+
+-- Resets the path data. Only call this function if you are at the origin
+local function resetPathData()
+    path = { vec3.clone(origin) }
+    pathInd = 1
 end
 
-function navigation.turnLeft()
-    turnLeft()
-end
 
-function navigation.faceDirection(dir)
+local function faceDirection(dir)
     while not vec3.equals(facing, dir) do
         turnRight()
     end
 end
 
-function navigation.moveAndClear(moveFunction, attackFunction, returning)
+-- MAIN PATHING INTERFACE
+
+local function moveAndClear(moveFunction, attackFunction, returning)
     local moved = false
     local error = nil
     local counter = 0
@@ -189,7 +207,7 @@ function navigation.moveAndClear(moveFunction, attackFunction, returning)
     return true
 end
 
-function navigation.returnHome()
+function returnHome()
     log("Returning Home.")
     pathInd = pathInd - 1
     while pathInd > 0 do
@@ -199,31 +217,32 @@ function navigation.returnHome()
         end
         local direction = directionBetween(pos, goal)
         if vec3.equals(direction, vec3.up()) then
-            navigation.moveAndClear(navigation.moveUp, robot.swingUp, true)
+            moveAndClear(moveUp, robot.swingUp, true)
         elseif vec3.equals(direction, vec3.down()) then
-            navigation.moveAndClear(navigation.moveDown, robot.swingDown, true)
+            moveAndClear(moveDown, robot.swingDown, true)
         else
-            navigation.faceDirection(direction)
-            navigation.moveAndClear(navigation.move, robot.swing, true)
+            faceDirection(direction)
+            moveAndClear(move, robot.swing, true)
         end
         pathInd = pathInd - 1
     end
     resetPathData()
 end
 
-function navigation.setHoleAbortLevel(level)
-    local numLevel = 1
+-- EXPORTED LIBRARY FUNCTIONS
 
-    if (level == "none") then
-        numLevel = holeAbortNone
-    elseif (level == "strict") then
-        numLevel = holeAbortStrict
-    elseif (level == "loose") then
-        numLevel = holeAbortLoose
-    end
-
-    holeAbortLevel = numLevel
-    log("hole abort level set to " .. level)
-end
+navigation.log = log
+navigation.endLog = endLog
+navigation.move = move
+navigation.moveUp = moveUp
+navigation.moveDown = moveDown
+navigation.turnRight = turnRight
+navigation.turnLeft = turnLeft
+navigation.faceDirection = faceDirection
+navigation.moveAndClear = moveAndClear
+navigation.returnHome = returnHome
+navigation.setHoleAbortLevel = setHoleAbortLevel
+navigation.getDirection = function() return vec3.clone(facing) end
+navigation.getPosition = function() return vec3.clone(pos) end
 
 return navigation
