@@ -26,7 +26,7 @@ for i = 1, invSize, 1 do
         table[i] = block
     end
 
-en
+end
 print("Enter file name")
 local fileName = io.read()
 local file = io.open(fileName, "w")
