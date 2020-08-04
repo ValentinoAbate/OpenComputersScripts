@@ -102,6 +102,20 @@ local function holeAbort(execptDirection)
         return true
     elseif (holeAbortLevel == 1) then
          return checkForSolids(execptDirection)
+    elseif (holeAbortLevel == 2) then
+        local passedCheck = checkForSolids(execptDirection)
+
+        if (passedCheck == false) then
+            local safe = false
+            repeat
+                moveGeneric(robot.down, down, true)
+                if (checkForSolids(up)) then
+                    safe = true
+                end
+            until safe
+        end
+
+        return true
     end
 end
 
@@ -217,6 +231,8 @@ function navigation.setHoleAbortLevel(level)
         numLevel = 0
     elseif (level == "strict") then
         numLevel = 1
+    elseif (level == "loose") then
+        numLevel = 2
     end
 
     holeAbortLevel = numLevel

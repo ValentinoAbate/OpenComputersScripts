@@ -3,7 +3,6 @@ GOALS
 General:
 Find how big the loaded area is
 
-Remove suck call in navigation
 
 Asa:
 Midi interpreter

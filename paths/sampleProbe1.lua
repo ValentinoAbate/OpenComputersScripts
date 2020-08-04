@@ -2,13 +2,13 @@ path = require("pathing")
 doorbell = require("doorbell")
 
 function probe()
-    local vertical = 20
-    local horizontal = 8
-    os.sleep(45)
+    os.sleep(5)
     doorbell.start()
 
-    path.pathAndReturn(path.forward(horizontal), path.down(vertical))
+    path.pathAndReturn(path.setHoleAbortLevel("loose"), path.forward(7), path.down(1))
     path.endPathing()
+
+    doorbell.ring("fireflies")
 
 end
 
