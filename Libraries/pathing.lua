@@ -32,8 +32,17 @@ local function turnLeft()
     nav.turnLeft()
 end
 
+local function turnAround()
+    nav.turnLeft()
+    nav.turnLeft()
+end
+
 local function setHoleAbortLevel(level)
     nav.setHoleAbortLevel(level)
+end
+
+local function trimPath()
+    nav.trimPath()
 end
 
 -- INTERNAL PATH FUNCTIONS
@@ -155,6 +164,13 @@ function pathing.turnLeft()
     end
 end
 
+function pathing.turnAround()
+    return function()
+        turnAround()
+        return true
+    end
+end
+
 -- Set level of hole about to be using
 -- Can be "strict" for full hole about coverage or "none" for none
 function pathing.setHoleAbortLevel(level)
@@ -163,6 +179,13 @@ function pathing.setHoleAbortLevel(level)
         return true
     end
 end
+
+function pathing.trimPath()
+    return function()
+        trimPath()
+        return true
+    end
+end 
 
 -- PATH EXECUTION
 

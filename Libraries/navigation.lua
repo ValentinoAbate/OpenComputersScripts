@@ -34,6 +34,15 @@ local function logCurrentPositionInPath()
     log((pathInd - 1) .. " moves away from home.")
 end
 
+local function trimPath()
+    for k,v in pairs(path) do
+        if (vec3.equals(v, pos)) then
+            pathInd = k
+            break
+        end
+    end
+end
+
 -- DIRECTION UTILITIES
 
 local function directionBetween(from, to)
@@ -244,5 +253,6 @@ navigation.returnHome = returnHome
 navigation.setHoleAbortLevel = setHoleAbortLevel
 navigation.getDirection = function() return vec3.clone(facing) end
 navigation.getPosition = function() return vec3.clone(pos) end
+navigation.trimPath = trimPath
 
 return navigation

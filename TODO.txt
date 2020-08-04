@@ -3,6 +3,8 @@ GOALS
 General:
 Find how big the loaded area is
 
+SAVE EVE 2: ELECTRIC BOOGALOO
+
 
 Asa:
 Midi interpreter
